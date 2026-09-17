@@ -29,18 +29,8 @@ Shubhan Mital - Corpus: city_guides
 
      Milestone 5. -->
 
-## Chunking Strategy
 
 ## Chunking Strategy
-
-**Chunk size:** No fixed character target — chunks are split on each document's own `## ` markdown headings, with a 900-character safety ceiling that never actually triggers in this corpus (longest real chunk is 758).
-**Overlap:** 0 between sections (headings are natural boundaries, not arbitrary cuts). 100 characters, sentence-aware, reserved for the safety ceiling if a future section ever exceeds it.
-
-When I read the city_guides documents in Milestone 1, every town guide turned out to follow the same structure: an H1 title, then a run of `## ` sections (Getting there, Eat and drink, What to see, etc.), each one a self-contained topic. None of these sections come close to 800 characters — the largest across all 14 documents is 709. That made the default fixed-800-character chunker actively wrong for this corpus: on `python app.py index` it reported a 51-chunk run with a shortest chunk of 24 characters, which I traced to bare H1 titles with no lead-in paragraph (`# Walking in the region`, `# Eating across the region`) getting cut off as their own chunk before any real content followed.
-
-My chunker splits on `## ` headings instead of a character count, folds any near-empty leading section into the one that follows it (eliminating the bare-title fragment), and prepends each document's title to every chunk. That last part matters because a section like "Eat and drink" never mentions its town's name inside the section text itself — read in isolation it couldn't answer a question like "which town has X," so the title makes each chunk self-contained.
-
-Result: 94 chunks, averaging 319 characters, ranging from 183 to 758 — smaller and more numerous than the default's 51, but each one maps to exactly one topic about exactly one place.
 
 <!-- What about YOUR documents made you pick these numbers? Short posts and
      long sectioned guides don't want the same chunking, and "800 seemed
@@ -51,6 +41,14 @@ Result: 94 chunks, averaging 319 characters, ranging from 183 to 758 — smaller
      more than pretending you got it right first time.
 
      Milestone 3. -->
+**Chunk size:** No fixed character target — chunks are split on each document's own `## ` markdown headings, with a 900-character safety ceiling that never actually triggers in this corpus (longest real chunk is 758).
+**Overlap:** 0 between sections (headings are natural boundaries, not arbitrary cuts). 100 characters, sentence-aware, reserved for the safety ceiling if a future section ever exceeds it.
+
+When I read the city_guides documents in Milestone 1, every town guide turned out to follow the same structure: an H1 title, then a run of `## ` sections (Getting there, Eat and drink, What to see, etc.), each one a self-contained topic. None of these sections come close to 800 characters — the largest across all 14 documents is 709. That made the default fixed-800-character chunker actively wrong for this corpus: on `python app.py index` it reported a 51-chunk run with a shortest chunk of 24 characters, which I traced to bare H1 titles with no lead-in paragraph (`# Walking in the region`, `# Eating across the region`) getting cut off as their own chunk before any real content followed.
+
+My chunker splits on `## ` headings instead of a character count, folds any near-empty leading section into the one that follows it (eliminating the bare-title fragment), and prepends each document's title to every chunk. That last part matters because a section like "Eat and drink" never mentions its town's name inside the section text itself — read in isolation it couldn't answer a question like "which town has X," so the title makes each chunk self-contained.
+
+Result: 94 chunks, averaging 319 characters, ranging from 183 to 758 — smaller and more numerous than the default's 51, but each one maps to exactly one topic about exactly one place.
 
 ## Sample Chunks
 
@@ -97,31 +95,6 @@ Chunk 5  |  source: guide_pellew_sands.md#6  |  produced by: chunker.py::split_d
 Pellew Sands — When to go
 
 June and September for the beach without the crowds. July and August are busy and the town is at its most itself, for better and worse. Winter is bleak, largely closed, and has a following among people who like that sort of thing.
-
-**Chunk 1** — source: `` — produced by: ``
-
-```
-```
-
-**Chunk 2** — source: `` — produced by: ``
-
-```
-```
-
-**Chunk 3** — source: `` — produced by: ``
-
-```
-```
-
-**Chunk 4** — source: `` — produced by: ``
-
-```
-```
-
-**Chunk 5** — source: `` — produced by: ``
-
-```
-```
 
 ## Sample Answer
 
