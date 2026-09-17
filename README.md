@@ -86,14 +86,17 @@ June and September for the beach without the crowds. July and August are busy an
 <!-- One complete question and answer, pasted as text, with the source line
      visible. Milestone 4. -->
 
-**Question:**
+**Question:** What year did the railway line north of Brightwater close?
 
 **Answer:**
 
 ```
+The railway line north of Brightwater closed in 1963.
+
+Source: guide_regional_transport.md (also mentioned in guide_walking.md and guide_kestrelford.md).
 ```
 
-**My relevance cutoff:**
+**My relevance cutoff:** 0.66, set in `config.py`.
 
 <!-- The number you set in config.py, and how you got there.
 
@@ -103,10 +106,22 @@ June and September for the beach without the crowds. July and August are busy an
      here - the table below wants all ten rows.
 
      Milestone 4. -->
+     I ran my 5 test questions and the 5 `OUT_OF_SCOPE` questions and recorded the best distance for each:
 
 | Question | In corpus? | Best distance |
 |---|---|---|
-|  |  |  |
+| How many residents does Kestrelford have? | Yes | 0.357 |
+| What year did the mill in Brightwater close? | Yes | 0.353 |
+| What year did the railway line north of Brightwater close? | Yes | 0.266 |
+| Which town is built on three levels connected by stepped lanes? | Yes | 0.500 |
+| What time do most kitchens in the region stop serving food in the evening? | Yes | 0.458 |
+| What is the capital of Mongolia? | No | 0.810 |
+| How do I change the oil in a diesel engine? | No | 0.881 |
+| Who won the 1994 World Cup? | No | 0.969 |
+| What is the recommended dosage of ibuprofen for a headache? | No | 0.835 |
+| How do I write a for loop in Rust? | No | 0.861 |
+
+The two groups separated cleanly: every in-corpus question landed at 0.500 or below, every out-of-corpus question landed at 0.810 or above - a 0.31 gap with nothing in it. I set the cutoff at 0.66, just past the midpoint, giving roughly equal margin on both sides rather than hugging either group. Notably, my hardest question (the reverse-lookup "which town is built on three levels" - the one my criteria.md predicted would be the most likely miss) still landed well inside the in-corpus group at 0.500, not near the boundary, which suggests my chunker's context-prefixing (adding each document's title to every chunk) is doing real work.
 
 ## How I Used AI
 
