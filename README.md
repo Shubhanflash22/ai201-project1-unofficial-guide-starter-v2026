@@ -14,6 +14,7 @@ Shubhan Mital - Corpus: city_guides
      this repo.
 
      Milestone 5. -->
+     This system answers questions about a fictional English region's fourteen town guides - things like town populations, historical dates, transport schedules, and restaurant closing times. It retrieves the most relevant section of the actual guide text for a question, then generates a short, grounded answer that names its source document. If a question falls outside what the guides cover, the relevance gate recognizes that the retrieved material isn't close enough to be useful and says "I don't have enough information about that" rather than guessing.
 
 
 ## Chunking Strategy
@@ -145,9 +146,12 @@ The two groups separated cleanly: every in-corpus question landed at 0.500 or be
 
      Milestone 5. -->
 
-**1.**
+**1. Milestone 2:** I developed the acceptance criteria based on my own analysis and observations, including the terminal output showing the 24-character chunk fragment and the 1963 railway closure appearing in three documents. Claude assisted me in refining the wording and writing and the correctness of the “why this target” reasoning for the five criteria. I reviewed all of them myself against the assignment requirements and made the final decisions on what to keep.
 
-**2.**
+**2. Milestone 3:** I performed the analysis of the per-section character counts across all 14 documents and determined the chunking approach. Claude assisted me in implementing my design through `_split_into_sections`, `_merge_short_leading_section`, and `_split_oversized` in `chunker.py`. I reviewed the implementation and caught the confusing `CHUNK_OVERLAP` naming conflict with `config.py`, then had it renamed to `OVERSIZE_OVERLAP` before using the code.
+
+Overall, I used Claude primarily as an assistant for drafting and translating my analysis/design into code. The corpus analysis, observations, implementation requirements, review, debugging, and final decisions were my own.
+
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
