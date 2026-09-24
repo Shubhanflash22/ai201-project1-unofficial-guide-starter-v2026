@@ -165,8 +165,7 @@ Overall, I used Claude primarily as an assistant for drafting and translating my
 <!-- These sections get ADDED to what's already above. Don't delete or rewrite
      week 1 - the point is that someone can see what you said before you knew
      how it went. -->
-
-## Run Log - Before
+## Run Log — Before
 
 <!-- Your five criteria, three runs each. `python run_eval.py --label before`
      runs the questions, puts the OUT_OF_SCOPE ones through the gate, and
@@ -178,13 +177,40 @@ Overall, I used Claude primarily as an assistant for drafting and translating my
 
      Milestone 1. -->
 
+
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | — | — | — | MET |
+| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | — | — | — | MET |
+
+Criteria 4 and 5 don't vary between runs, for the same reason criterion 3 doesn't: chunk length and source citation are properties of the chunker and retrieval, not the generated answer, so one pass is the whole measurement — measured once rather than three times.
+
+**Real output — criterion 1 and 2, "What year did the railway line north of Brightwater close?", run 1:**
+
+The railway line north of Brightwater closed in 1963.
+
+Source: guide_regional_transport.md (and also mentioned in guide_walking.md and guide_kestrelford.md).
+
+
+**Real output — criterion 3, out-of-scope gate:**
+
+What is the capital of Mongolia? — best distance 0.810 — refused
+How do I change the oil in a diesel engine? — best distance 0.881 — refused
+Who won the 1994 World Cup? — best distance 0.969 — refused
+What is the recommended dosage of ibuprofen for a headache? — best distance 0.835 — refused
+How do I write a for loop in Rust? — best distance 0.861 — refused
+gate refused 5 of 5
+
+
+**Real output — criterion 4, from `python app.py index`:**
+
+chunked 94 chunks, 319 characters on average (shortest 183, longest 758), produced by chunker.py::split_documents
+
+
+**Real output — criterion 5**, the one cross-referenced fact in my test set (the 1963 railway closure, which appears in three documents): all three runs cited `guide_regional_transport.md`, and I confirmed directly that this file's "The railway" section is the one containing the 1963 date — not a document that merely shares vocabulary with the question.
 
 <!-- Underneath, paste the REAL output for each criterion from one of your
      runs - the actual text your system produced, not a description of it.
@@ -203,11 +229,11 @@ Overall, I used Claude primarily as an assistant for drafting and translating my
 
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-| 4 |  |  |  |
-| 5 |  |  |  |
+| 1 | Retrieved chunk contains the answer | MET | All 5 questions passed all 3 runs (15/15), exceeding the 4-of-5 target with no misses at all. |
+| 2 | Every answer names a source | MET | Every one of the 15 generated answers named at least one source filename — this held even across small wording variations between runs. |
+| 3 | Gate stops out-of-corpus questions | MET | 5 of 5 refused, at the target. |
+| 4 | Chunks read as complete thoughts, none under 150 chars | MET | Shortest chunk across the whole corpus is 183 characters — above my 150 floor — and the 5 chunks I sampled in Milestone 3 all read as complete thoughts. |
+| 5 | Cross-referenced facts cite a document that contains them | MET | The one repeated fact in my test set (1963 railway closure) was correctly attributed to a document that actually contains it, across all 3 runs. |
 
 ## Diagnoses
 
@@ -228,6 +254,17 @@ Overall, I used Claude primarily as an assistant for drafting and translating my
      low, and which one you'd tighten and to what.
 
      Milestone 3. -->
+
+I missed nothing. Every criterion was met on every run, including the out-of-scope gate.
+
+Being honest about what that means: I don't think this shows the system is excellent — I think it shows my targets were set with too much safety margin, for two concrete reasons.
+
+**First, my questions turned out to be easier than I designed them to be.** I deliberately included one "hard" question — the reverse-lookup ("which town is built on three levels connected by stepped lanes?") — expecting it to be my most likely miss (I said so directly in criteria.md's reasoning for criterion 1). It never came close: 0.500 best distance, well inside my in-corpus group, and the model answered it correctly all three runs. My chunker's context-prefixing (adding each document's title to every chunk) apparently solved this problem more completely than I expected when I wrote the criterion.
+
+**Second, my corpus and my out-of-scope questions are too far apart.** My distance gap between in-corpus and out-of-corpus questions is 0.31 wide (0.500 to 0.810) with nothing in it. My `OUT_OF_SCOPE` questions (capital of Mongolia, diesel oil changes, Rust for-loops) are about as far outside a British town-guide corpus as a question can get — none of them are a near-miss the way a real user's off-topic-but-adjacent question might be (e.g. asking about a *real* nearby city not in my fictional region, or a town-guide-shaped question about a town I don't have).
+
+**What I'd tighten:** criterion 3. Right now it's tested against questions that are trivially far outside the corpus. A more honest test would include at least one adversarial out-of-scope question that's topically adjacent — something that uses vocabulary from my corpus (towns, transport, guides) but asks something the documents genuinely don't answer, e.g. "What's the population of a town not covered in this guide?" or "Which town has the cheapest hotel rooms?" (a comparison my guides don't actually make). I'd expect that kind of question to land much closer to my cutoff than 0.810, and it's the real test of whether 0.66 is doing meaningful work rather than just separating "on-topic" from "wildly off-topic."
+
 
 ## The Improvement
 
