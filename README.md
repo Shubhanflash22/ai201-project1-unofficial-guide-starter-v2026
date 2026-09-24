@@ -188,6 +188,10 @@ Overall, I used Claude primarily as an assistant for drafting and translating my
 
 Criteria 4 and 5 don't vary between runs, for the same reason criterion 3 doesn't: chunk length and source citation are properties of the chunker and retrieval, not the generated answer, so one pass is the whole measurement — measured once rather than three times.
 
+<!-- Underneath, paste the REAL output for each criterion from one of your
+     runs - the actual text your system produced, not a description of it.
+     Name the file and function that produced it. -->
+
 **Real output — criterion 1 and 2, "What year did the railway line north of Brightwater close?", run 1:**
 
 The railway line north of Brightwater closed in 1963.
@@ -211,10 +215,6 @@ chunked 94 chunks, 319 characters on average (shortest 183, longest 758), produc
 
 
 **Real output — criterion 5**, the one cross-referenced fact in my test set (the 1963 railway closure, which appears in three documents): all three runs cited `guide_regional_transport.md`, and I confirmed directly that this file's "The railway" section is the one containing the 1963 date — not a document that merely shares vocabulary with the question.
-
-<!-- Underneath, paste the REAL output for each criterion from one of your
-     runs - the actual text your system produced, not a description of it.
-     Name the file and function that produced it. -->
 
 ## Verdicts
 
