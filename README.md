@@ -268,9 +268,11 @@ Being honest about what that means: I don't think this shows the system is excel
 
 ## The Improvement
 
-**What I changed:**
+**What I changed:** Added one sentence to `GROUNDING_INSTRUCTION` in `generate.py`: "Being topically related to the question is not enough. Only answer if the specific fact the question asks for is explicitly stated in the documents. If the documents discuss the same general subject but never state the actual answer, say you don't have enough information — do not infer, estimate, or guess your way to an answer from related but incomplete information."
 
-**Why I picked it:**
+**Why I picked it:** My Milestone 3 diagnosis found that my original out-of-scope test questions were too easy — every one was wildly unrelated to the corpus (capital of Mongolia, Rust for-loops). When I tested 4 harder, topically-adjacent questions instead (population of a fictional nearby town, cheapest accommodation, Sunday shop hours, transport to London), only 1 of 4 was caught by the relevance gate itself; the other 3 slipped past my 0.66 cutoff and were only refused because of the model's own grounding instruction.
+
+I checked two other fixes before choosing this one and ruled both out with evidence: tightening the gate's cutoff can't work, because two of my adversarial questions (0.398, 0.494) score a *lower* distance than my legitimate hardest question (0.500) — there's no single threshold that keeps one passing while blocking the other. Hybrid/keyword search also wouldn't help — I checked my actual documents, and words like "cheapest" and "London" don't appear anywhere in the corpus, while "Sunday" appears in 9 documents in contexts that are genuinely topically adjacent but never state the specific regional fact asked. The failure isn't a retrieval-method problem; it's that generation-time reasoning is the only place that can distinguish "related content" from "the actual answer," so that's where I made the change.
 
 <!-- Connect it to a specific diagnosis above in one sentence. If you can't,
      you picked a fix because it sounded impressive. -->
@@ -280,15 +282,26 @@ Being honest about what that means: I don't think this shows the system is excel
 <!-- Same format, same five criteria, three runs each.
      `python run_eval.py --label after` -->
 
+### Run Log — After
+
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | — | — | — | MET |
+| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | — | — | — | MET |
 
-**Did it help?**
+**Adversarial questions, before vs. after (same 4 questions, same distances — only the wording changed):**
+
+| Question | Distance | Before | After |
+|---|---|---|---|
+| Population of Millbrook | 0.701 | Refused by gate | Refused by gate (unchanged) |
+| Cheapest overnight stay | 0.551 | Generic refusal | Refusal names the specific gap: qualitative vs. comparative pricing data |
+| Shops close on Sundays | 0.494 | Generic refusal | Refusal names the specific missing fact |
+| Kestrelford to London | 0.398 | Generic refusal | Refused, still generic — no visible change on this one |
+
+**Did it help?** Partially, and I want to be precise about what changed. No criterion moved from MISS to MET or vice versa — all 5 were already MET before this change, and the underlying gate-versus-generation split on the adversarial questions is unchanged: still 1 of 4 caught by the gate, 3 of 4 caught only by generation-time refusal. What *did* change is the quality of two of those three model-generated refusals — they now name the specific reason the documents fall short (qualitative vs. comparative data; a specific unstated fact) instead of a generic "I don't have enough information." One adversarial question (Kestrelford to London) showed no visible difference in wording. I'd call this a real but modest improvement: it makes the system's refusals more legible and trustworthy to a user reading them, but it doesn't change the more fundamental limitation my diagnosis found — that the relevance gate itself, not just the prompt, is structurally unable to separate these categories by distance alone.
 
 <!-- Say plainly whether it did, and how you know. If it made things worse,
      say that - a change that backfired, honestly reported, earns full credit
@@ -296,6 +309,7 @@ Being honest about what that means: I don't think this shows the system is excel
      tell.
 
      Milestone 4. -->
+     
 
 ## What's Still Broken
 
