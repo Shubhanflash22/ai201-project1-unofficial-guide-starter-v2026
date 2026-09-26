@@ -135,7 +135,7 @@ Source: guide_regional_transport.md (also mentioned in guide_walking.md and guid
 
 The two groups separated cleanly: every in-corpus question landed at 0.500 or below, every out-of-corpus question landed at 0.810 or above - a 0.31 gap with nothing in it. I set the cutoff at 0.66, just past the midpoint, giving roughly equal margin on both sides rather than hugging either group. Notably, my hardest question (the reverse-lookup "which town is built on three levels" - the one my criteria.md predicted would be the most likely miss) still landed well inside the in-corpus group at 0.500, not near the boundary, which suggests my chunker's context-prefixing (adding each document's title to every chunk) is doing real work.
 
-## How I Used AI
+## How I Used AI - Week 1
 
 <!-- Two specific moments. For each: what you asked for, what came back, and
      what you changed about it.
@@ -152,6 +152,15 @@ The two groups separated cleanly: every in-corpus question landed at 0.500 or be
 
 Overall, I used Claude primarily as an assistant for drafting and translating my analysis/design into code. The corpus analysis, observations, implementation requirements, review, debugging, and final decisions were my own.
 
+## How I Used AI - Week 2
+After my Milestone 1 run came back with zero misses, I used Claude to figure out how to actually stress-test criterion 3 rather than just accept the pass. It suggested a set of adversarial out-of-scope questions — topically adjacent to my corpus (a fictional nearby town, comparative pricing, regional hours, and a real town name with an unanswerable route question) rather than the wildly unrelated questions in my original `OUT_OF_SCOPE` list. I ran those myself and got the real distances.
+
+Based on those results, Claude proposed three possible fixes: lowering the gate's cutoff, adding keyword/hybrid search, or tightening the grounding prompt. I tested all three approaches against the actual behavior of my system. The cutoff change did not produce the expected improvement because the distance distributions for legitimate and adversarial questions overlapped, meaning lowering the threshold risked affecting legitimate questions as well. I also tried the keyword/hybrid search approach, but it did not produce the expected improvement for these adversarial cases because the relevant terms were not present in the corpus in a way that would reliably distinguish answerable from unanswerable questions.
+
+I then tested the grounding-prompt change. This produced the most useful improvement, making the model's refusals more specific and better grounded in what information was actually available in the corpus. I reviewed the before/after outputs myself rather than assuming the change had fixed the underlying classification completely. I concluded that the main improvement was in the quality and specificity of the refusals, rather than a complete change from wrong to right on every adversarial example, and documented that distinction in the README.
+
+Overall, I used Claude primarily as an assistant for drafting and translating my analysis/design into code. The corpus analysis, observations, implementation requirements, review, debugging, and final decisions were my own.
+
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
@@ -165,7 +174,7 @@ Overall, I used Claude primarily as an assistant for drafting and translating my
 <!-- These sections get ADDED to what's already above. Don't delete or rewrite
      week 1 - the point is that someone can see what you said before you knew
      how it went. -->
-## Run Log — Before
+## Run Log - Before
 
 <!-- Your five criteria, three runs each. `python run_eval.py --label before`
      runs the questions, puts the OUT_OF_SCOPE ones through the gate, and
@@ -183,38 +192,38 @@ Overall, I used Claude primarily as an assistant for drafting and translating my
 | 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
-| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | — | — | — | MET |
-| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | — | — | — | MET |
+| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | - | - | - | MET |
+| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | - | - | - | MET |
 
-Criteria 4 and 5 don't vary between runs, for the same reason criterion 3 doesn't: chunk length and source citation are properties of the chunker and retrieval, not the generated answer, so one pass is the whole measurement — measured once rather than three times.
+Criteria 4 and 5 don't vary between runs, for the same reason criterion 3 doesn't: chunk length and source citation are properties of the chunker and retrieval, not the generated answer, so one pass is the whole measurement - measured once rather than three times.
 
 <!-- Underneath, paste the REAL output for each criterion from one of your
      runs - the actual text your system produced, not a description of it.
      Name the file and function that produced it. -->
 
-**Real output — criterion 1 and 2, "What year did the railway line north of Brightwater close?", run 1:**
+**Real output - criterion 1 and 2, "What year did the railway line north of Brightwater close?", run 1:**
 
 The railway line north of Brightwater closed in 1963.
 
 Source: guide_regional_transport.md (and also mentioned in guide_walking.md and guide_kestrelford.md).
 
 
-**Real output — criterion 3, out-of-scope gate:**
+**Real output - criterion 3, out-of-scope gate:**
 
-What is the capital of Mongolia? — best distance 0.810 — refused
-How do I change the oil in a diesel engine? — best distance 0.881 — refused
-Who won the 1994 World Cup? — best distance 0.969 — refused
-What is the recommended dosage of ibuprofen for a headache? — best distance 0.835 — refused
-How do I write a for loop in Rust? — best distance 0.861 — refused
+What is the capital of Mongolia? - best distance 0.810 - refused
+How do I change the oil in a diesel engine? - best distance 0.881 - refused
+Who won the 1994 World Cup? - best distance 0.969 - refused
+What is the recommended dosage of ibuprofen for a headache? - best distance 0.835 - refused
+How do I write a for loop in Rust? - best distance 0.861 - refused
 gate refused 5 of 5
 
 
-**Real output — criterion 4, from `python app.py index`:**
+**Real output - criterion 4, from `python app.py index`:**
 
 chunked 94 chunks, 319 characters on average (shortest 183, longest 758), produced by chunker.py::split_documents
 
 
-**Real output — criterion 5**, the one cross-referenced fact in my test set (the 1963 railway closure, which appears in three documents): all three runs cited `guide_regional_transport.md`, and I confirmed directly that this file's "The railway" section is the one containing the 1963 date — not a document that merely shares vocabulary with the question.
+**Real output - criterion 5**, the one cross-referenced fact in my test set (the 1963 railway closure, which appears in three documents): all three runs cited `guide_regional_transport.md`, and I confirmed directly that this file's "The railway" section is the one containing the 1963 date - not a document that merely shares vocabulary with the question.
 
 ## Verdicts
 
@@ -230,9 +239,9 @@ chunked 94 chunks, 319 characters on average (shortest 183, longest 758), produc
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
 | 1 | Retrieved chunk contains the answer | MET | All 5 questions passed all 3 runs (15/15), exceeding the 4-of-5 target with no misses at all. |
-| 2 | Every answer names a source | MET | Every one of the 15 generated answers named at least one source filename — this held even across small wording variations between runs. |
+| 2 | Every answer names a source | MET | Every one of the 15 generated answers named at least one source filename - this held even across small wording variations between runs. |
 | 3 | Gate stops out-of-corpus questions | MET | 5 of 5 refused, at the target. |
-| 4 | Chunks read as complete thoughts, none under 150 chars | MET | Shortest chunk across the whole corpus is 183 characters — above my 150 floor — and the 5 chunks I sampled in Milestone 3 all read as complete thoughts. |
+| 4 | Chunks read as complete thoughts, none under 150 chars | MET | Shortest chunk across the whole corpus is 183 characters - above my 150 floor - and the 5 chunks I sampled in Milestone 3 all read as complete thoughts. |
 | 5 | Cross-referenced facts cite a document that contains them | MET | The one repeated fact in my test set (1963 railway closure) was correctly attributed to a document that actually contains it, across all 3 runs. |
 
 ## Diagnoses
@@ -257,22 +266,22 @@ chunked 94 chunks, 319 characters on average (shortest 183, longest 758), produc
 
 I missed nothing. Every criterion was met on every run, including the out-of-scope gate.
 
-Being honest about what that means: I don't think this shows the system is excellent — I think it shows my targets were set with too much safety margin, for two concrete reasons.
+Being honest about what that means: I don't think this shows the system is excellent - I think it shows my targets were set with too much safety margin, for two concrete reasons.
 
-**First, my questions turned out to be easier than I designed them to be.** I deliberately included one "hard" question — the reverse-lookup ("which town is built on three levels connected by stepped lanes?") — expecting it to be my most likely miss (I said so directly in criteria.md's reasoning for criterion 1). It never came close: 0.500 best distance, well inside my in-corpus group, and the model answered it correctly all three runs. My chunker's context-prefixing (adding each document's title to every chunk) apparently solved this problem more completely than I expected when I wrote the criterion.
+**First, my questions turned out to be easier than I designed them to be.** I deliberately included one "hard" question - the reverse-lookup ("which town is built on three levels connected by stepped lanes?") - expecting it to be my most likely miss (I said so directly in criteria.md's reasoning for criterion 1). It never came close: 0.500 best distance, well inside my in-corpus group, and the model answered it correctly all three runs. My chunker's context-prefixing (adding each document's title to every chunk) apparently solved this problem more completely than I expected when I wrote the criterion.
 
-**Second, my corpus and my out-of-scope questions are too far apart.** My distance gap between in-corpus and out-of-corpus questions is 0.31 wide (0.500 to 0.810) with nothing in it. My `OUT_OF_SCOPE` questions (capital of Mongolia, diesel oil changes, Rust for-loops) are about as far outside a British town-guide corpus as a question can get — none of them are a near-miss the way a real user's off-topic-but-adjacent question might be (e.g. asking about a *real* nearby city not in my fictional region, or a town-guide-shaped question about a town I don't have).
+**Second, my corpus and my out-of-scope questions are too far apart.** My distance gap between in-corpus and out-of-corpus questions is 0.31 wide (0.500 to 0.810) with nothing in it. My `OUT_OF_SCOPE` questions (capital of Mongolia, diesel oil changes, Rust for-loops) are about as far outside a British town-guide corpus as a question can get - none of them are a near-miss the way a real user's off-topic-but-adjacent question might be (e.g. asking about a *real* nearby city not in my fictional region, or a town-guide-shaped question about a town I don't have).
 
-**What I'd tighten:** criterion 3. Right now it's tested against questions that are trivially far outside the corpus. A more honest test would include at least one adversarial out-of-scope question that's topically adjacent — something that uses vocabulary from my corpus (towns, transport, guides) but asks something the documents genuinely don't answer, e.g. "What's the population of a town not covered in this guide?" or "Which town has the cheapest hotel rooms?" (a comparison my guides don't actually make). I'd expect that kind of question to land much closer to my cutoff than 0.810, and it's the real test of whether 0.66 is doing meaningful work rather than just separating "on-topic" from "wildly off-topic."
+**What I'd tighten:** criterion 3. Right now it's tested against questions that are trivially far outside the corpus. A more honest test would include at least one adversarial out-of-scope question that's topically adjacent - something that uses vocabulary from my corpus (towns, transport, guides) but asks something the documents genuinely don't answer, e.g. "What's the population of a town not covered in this guide?" or "Which town has the cheapest hotel rooms?" (a comparison my guides don't actually make). I'd expect that kind of question to land much closer to my cutoff than 0.810, and it's the real test of whether 0.66 is doing meaningful work rather than just separating "on-topic" from "wildly off-topic."
 
 
 ## The Improvement
 
-**What I changed:** Added one sentence to `GROUNDING_INSTRUCTION` in `generate.py`: "Being topically related to the question is not enough. Only answer if the specific fact the question asks for is explicitly stated in the documents. If the documents discuss the same general subject but never state the actual answer, say you don't have enough information — do not infer, estimate, or guess your way to an answer from related but incomplete information."
+**What I changed:** Added one sentence to `GROUNDING_INSTRUCTION` in `generate.py`: "Being topically related to the question is not enough. Only answer if the specific fact the question asks for is explicitly stated in the documents. If the documents discuss the same general subject but never state the actual answer, say you don't have enough information - do not infer, estimate, or guess your way to an answer from related but incomplete information."
 
-**Why I picked it:** My Milestone 3 diagnosis found that my original out-of-scope test questions were too easy — every one was wildly unrelated to the corpus (capital of Mongolia, Rust for-loops). When I tested 4 harder, topically-adjacent questions instead (population of a fictional nearby town, cheapest accommodation, Sunday shop hours, transport to London), only 1 of 4 was caught by the relevance gate itself; the other 3 slipped past my 0.66 cutoff and were only refused because of the model's own grounding instruction.
+**Why I picked it:** My Milestone 3 diagnosis found that my original out-of-scope test questions were too easy - every one was wildly unrelated to the corpus (capital of Mongolia, Rust for-loops). When I tested 4 harder, topically-adjacent questions instead (population of a fictional nearby town, cheapest accommodation, Sunday shop hours, transport to London), only 1 of 4 was caught by the relevance gate itself; the other 3 slipped past my 0.66 cutoff and were only refused because of the model's own grounding instruction.
 
-I checked two other fixes before choosing this one and ruled both out with evidence: tightening the gate's cutoff can't work, because two of my adversarial questions (0.398, 0.494) score a *lower* distance than my legitimate hardest question (0.500) — there's no single threshold that keeps one passing while blocking the other. Hybrid/keyword search also wouldn't help — I checked my actual documents, and words like "cheapest" and "London" don't appear anywhere in the corpus, while "Sunday" appears in 9 documents in contexts that are genuinely topically adjacent but never state the specific regional fact asked. The failure isn't a retrieval-method problem; it's that generation-time reasoning is the only place that can distinguish "related content" from "the actual answer," so that's where I made the change.
+I checked two other fixes before choosing this one and ruled both out with evidence: tightening the gate's cutoff can't work, because two of my adversarial questions (0.398, 0.494) score a *lower* distance than my legitimate hardest question (0.500) - there's no single threshold that keeps one passing while blocking the other. Hybrid/keyword search also wouldn't help - I checked my actual documents, and words like "cheapest" and "London" don't appear anywhere in the corpus, while "Sunday" appears in 9 documents in contexts that are genuinely topically adjacent but never state the specific regional fact asked. The failure isn't a retrieval-method problem; it's that generation-time reasoning is the only place that can distinguish "related content" from "the actual answer," so that's where I made the change.
 
 <!-- Connect it to a specific diagnosis above in one sentence. If you can't,
      you picked a fix because it sounded impressive. -->
@@ -282,26 +291,26 @@ I checked two other fixes before choosing this one and ruled both out with evide
 <!-- Same format, same five criteria, three runs each.
      `python run_eval.py --label after` -->
 
-### Run Log — After
+### Run Log - After
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
 | 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
-| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | — | — | — | MET |
-| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | — | — | — | MET |
+| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | - | - | - | MET |
+| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | - | - | - | MET |
 
-**Adversarial questions, before vs. after (same 4 questions, same distances — only the wording changed):**
+**Adversarial questions, before vs. after (same 4 questions, same distances - only the wording changed):**
 
 | Question | Distance | Before | After |
 |---|---|---|---|
 | Population of Millbrook | 0.701 | Refused by gate | Refused by gate (unchanged) |
 | Cheapest overnight stay | 0.551 | Generic refusal | Refusal names the specific gap: qualitative vs. comparative pricing data |
 | Shops close on Sundays | 0.494 | Generic refusal | Refusal names the specific missing fact |
-| Kestrelford to London | 0.398 | Generic refusal | Refused, still generic — no visible change on this one |
+| Kestrelford to London | 0.398 | Generic refusal | Refused, still generic - no visible change on this one |
 
-**Did it help?** Partially, and I want to be precise about what changed. No criterion moved from MISS to MET or vice versa — all 5 were already MET before this change, and the underlying gate-versus-generation split on the adversarial questions is unchanged: still 1 of 4 caught by the gate, 3 of 4 caught only by generation-time refusal. What *did* change is the quality of two of those three model-generated refusals — they now name the specific reason the documents fall short (qualitative vs. comparative data; a specific unstated fact) instead of a generic "I don't have enough information." One adversarial question (Kestrelford to London) showed no visible difference in wording. I'd call this a real but modest improvement: it makes the system's refusals more legible and trustworthy to a user reading them, but it doesn't change the more fundamental limitation my diagnosis found — that the relevance gate itself, not just the prompt, is structurally unable to separate these categories by distance alone.
+**Did it help?** Partially, and I want to be precise about what changed. No criterion moved from MISS to MET or vice versa - all 5 were already MET before this change, and the underlying gate-versus-generation split on the adversarial questions is unchanged: still 1 of 4 caught by the gate, 3 of 4 caught only by generation-time refusal. What *did* change is the quality of two of those three model-generated refusals - they now name the specific reason the documents fall short (qualitative vs. comparative data; a specific unstated fact) instead of a generic "I don't have enough information." One adversarial question (Kestrelford to London) showed no visible difference in wording. I'd call this a real but modest improvement: it makes the system's refusals more legible and trustworthy to a user reading them, but it doesn't change the more fundamental limitation my diagnosis found - that the relevance gate itself, not just the prompt, is structurally unable to separate these categories by distance alone.
 
 <!-- Say plainly whether it did, and how you know. If it made things worse,
      say that - a change that backfired, honestly reported, earns full credit
@@ -320,6 +329,9 @@ I checked two other fixes before choosing this one and ruled both out with evide
      not.
 
      Milestone 5. -->
+Nothing failed outright - every criterion was MET before and after my change. But my diagnosis surfaced a real structural gap that my improvement didn't close: the relevance gate itself can only catch 1 of 4 topically-adjacent-but-unanswerable questions; the other 3 depend entirely on the model's own grounding discipline to refuse correctly. I checked and ruled out two fixes for this - tightening the gate's cutoff (impossible without also blocking my legitimate hardest question, since their distances overlap: 0.398/0.494 vs. 0.500) and hybrid/keyword search (the missing words genuinely don't exist in my corpus, so lexical matching wouldn't discriminate any better than semantic matching does).
+
+What I'd do next, if I had more time: build a genuine second-stage check that's independent of the same embedding model that failed to separate these cases - for example, after retrieval, explicitly ask the model a yes/no question ("Does this specific chunk state [X]?") before letting it generate a full answer, rather than folding that judgment into one generation call that both checks relevance and writes the answer. Right now, one call is doing two jobs, and I only have anecdotal confidence (3 of 3 adversarial cases, this run) that it consistently does both well. I stopped here because this unit's scope is one measured improvement, not a pipeline redesign, and the current two-layer defense (gate + prompt) never actually failed in my testing - it's a theoretical gap I found by stress-testing, not an observed failure.
 
 ## What I'd Do Differently
 
@@ -327,3 +339,7 @@ I checked two other fixes before choosing this one and ruled both out with evide
      differently, and why?
 
      Milestone 5. -->
+
+I'd rewrite criterion 3. As originally written - "the relevance gate stops it... in at least 4 of 5 tries" - it names the gate specifically, but my testing showed the gate isn't actually the layer doing most of the real work on hard cases; the grounding prompt is. A more honest criterion would test the *system's* end-to-end refusal behavior regardless of which layer catches it, e.g.: "For at least 4 of 5 out-of-scope questions, including at least one topically-adjacent question, the system's final answer indicates insufficient information rather than guessing." That version would have caught the real finding from day one - that my original 5 out-of-scope questions were too easy to meaningfully test the gate - instead of me discovering it by hand in Unit 2.
+
+I'd also write criterion 1 with an explicit adversarial case from the start, the way I already did with the reverse-lookup question. That one predicted correctly where my system would struggle; my out-of-scope set didn't get the same treatment, and that gap is exactly what Unit 2 surfaced.
