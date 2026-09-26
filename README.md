@@ -192,8 +192,8 @@ Overall, I used Claude primarily as an assistant for drafting and translating my
 | 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
-| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | - | - | - | MET |
-| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | - | - | - | MET |
+| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | 5/5 | 5/5 | 5/5 | MET |
+| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | 1/1 | 1/1 | 1/1 | MET |
 
 Criteria 4 and 5 don't vary between runs, for the same reason criterion 3 doesn't: chunk length and source citation are properties of the chunker and retrieval, not the generated answer, so one pass is the whole measurement - measured once rather than three times.
 
@@ -283,6 +283,8 @@ Being honest about what that means: I don't think this shows the system is excel
 
 I checked two other fixes before choosing this one and ruled both out with evidence: tightening the gate's cutoff can't work, because two of my adversarial questions (0.398, 0.494) score a *lower* distance than my legitimate hardest question (0.500) - there's no single threshold that keeps one passing while blocking the other. Hybrid/keyword search also wouldn't help - I checked my actual documents, and words like "cheapest" and "London" don't appear anywhere in the corpus, while "Sunday" appears in 9 documents in contexts that are genuinely topically adjacent but never state the specific regional fact asked. The failure isn't a retrieval-method problem; it's that generation-time reasoning is the only place that can distinguish "related content" from "the actual answer," so that's where I made the change.
 
+Full before/after output for these four questions is committed at `results/adversarial_before_after.md`.
+
 <!-- Connect it to a specific diagnosis above in one sentence. If you can't,
      you picked a fix because it sounded impressive. -->
 
@@ -291,15 +293,13 @@ I checked two other fixes before choosing this one and ruled both out with evide
 <!-- Same format, same five criteria, three runs each.
      `python run_eval.py --label after` -->
 
-### Run Log - After
-
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
 | 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
-| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | - | - | - | MET |
-| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | - | - | - | MET |
+| 4. Chunks read as complete thoughts, none under 150 chars | 4 of 5 sampled, no chunk < 150 chars | 5/5 | 5/5 | 5/5 | MET |
+| 5. Cross-referenced facts cite a document that contains them | 4 of 5 | 1/1 | 1/1 | 1/1 | MET |
 
 **Adversarial questions, before vs. after (same 4 questions, same distances - only the wording changed):**
 
