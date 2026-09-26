@@ -135,7 +135,7 @@ Source: guide_regional_transport.md (also mentioned in guide_walking.md and guid
 
 The two groups separated cleanly: every in-corpus question landed at 0.500 or below, every out-of-corpus question landed at 0.810 or above - a 0.31 gap with nothing in it. I set the cutoff at 0.66, just past the midpoint, giving roughly equal margin on both sides rather than hugging either group. Notably, my hardest question (the reverse-lookup "which town is built on three levels" - the one my criteria.md predicted would be the most likely miss) still landed well inside the in-corpus group at 0.500, not near the boundary, which suggests my chunker's context-prefixing (adding each document's title to every chunk) is doing real work.
 
-## How I Used AI - Week 1
+## How I Used AI 
 
 <!-- Two specific moments. For each: what you asked for, what came back, and
      what you changed about it.
@@ -145,14 +145,14 @@ The two groups separated cleanly: every in-corpus question landed at 0.500 or be
      "I used AI to help me code" is not.
 
      Milestone 5. -->
-
+**Week 1**
 **1. Milestone 2:** I developed the acceptance criteria based on my own analysis and observations, including the terminal output showing the 24-character chunk fragment and the 1963 railway closure appearing in three documents. Claude assisted me in refining the wording and writing and the correctness of the “why this target” reasoning for the five criteria. I reviewed all of them myself against the assignment requirements and made the final decisions on what to keep.
 
 **2. Milestone 3:** I performed the analysis of the per-section character counts across all 14 documents and determined the chunking approach. Claude assisted me in implementing my design through `_split_into_sections`, `_merge_short_leading_section`, and `_split_oversized` in `chunker.py`. I reviewed the implementation and caught the confusing `CHUNK_OVERLAP` naming conflict with `config.py`, then had it renamed to `OVERSIZE_OVERLAP` before using the code.
 
 Overall, I used Claude primarily as an assistant for drafting and translating my analysis/design into code. The corpus analysis, observations, implementation requirements, review, debugging, and final decisions were my own.
 
-## How I Used AI - Week 2
+**Week 2**
 After my Milestone 1 run came back with zero misses, I used Claude to figure out how to actually stress-test criterion 3 rather than just accept the pass. It suggested a set of adversarial out-of-scope questions — topically adjacent to my corpus (a fictional nearby town, comparative pricing, regional hours, and a real town name with an unanswerable route question) rather than the wildly unrelated questions in my original `OUT_OF_SCOPE` list. I ran those myself and got the real distances.
 
 Based on those results, Claude proposed three possible fixes: lowering the gate's cutoff, adding keyword/hybrid search, or tightening the grounding prompt. I tested all three approaches against the actual behavior of my system. The cutoff change did not produce the expected improvement because the distance distributions for legitimate and adversarial questions overlapped, meaning lowering the threshold risked affecting legitimate questions as well. I also tried the keyword/hybrid search approach, but it did not produce the expected improvement for these adversarial cases because the relevant terms were not present in the corpus in a way that would reliably distinguish answerable from unanswerable questions.
