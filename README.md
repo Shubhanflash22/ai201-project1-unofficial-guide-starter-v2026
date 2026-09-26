@@ -153,7 +153,7 @@ The two groups separated cleanly: every in-corpus question landed at 0.500 or be
 Overall, I used Claude primarily as an assistant for drafting and translating my analysis/design into code. The corpus analysis, observations, implementation requirements, review, debugging, and final decisions were my own.
 
 **Week 2**
-After my Milestone 1 run came back with zero misses, I used Claude to figure out how to actually stress-test criterion 3 rather than just accept the pass. It suggested a set of adversarial out-of-scope questions — topically adjacent to my corpus (a fictional nearby town, comparative pricing, regional hours, and a real town name with an unanswerable route question) rather than the wildly unrelated questions in my original `OUT_OF_SCOPE` list. I ran those myself and got the real distances.
+After my Milestone 1 run came back with zero misses, I used Claude to figure out how to actually stress-test criterion 3 rather than just accept the pass. It suggested a set of adversarial out-of-scope questions - topically adjacent to my corpus (a fictional nearby town, comparative pricing, regional hours, and a real town name with an unanswerable route question) rather than the wildly unrelated questions in my original `OUT_OF_SCOPE` list. I ran those myself and got the real distances.
 
 Based on those results, Claude proposed three possible fixes: lowering the gate's cutoff, adding keyword/hybrid search, or tightening the grounding prompt. I tested all three approaches against the actual behavior of my system. The cutoff change did not produce the expected improvement because the distance distributions for legitimate and adversarial questions overlapped, meaning lowering the threshold risked affecting legitimate questions as well. I also tried the keyword/hybrid search approach, but it did not produce the expected improvement for these adversarial cases because the relevant terms were not present in the corpus in a way that would reliably distinguish answerable from unanswerable questions.
 
@@ -287,6 +287,21 @@ Full before/after output for these four questions is committed at `results/adver
 
 <!-- Connect it to a specific diagnosis above in one sentence. If you can't,
      you picked a fix because it sounded impressive. -->
+
+## Second Improvement (Stretch)
+
+**What I changed:** Added an opt-in hybrid search mode to `store.py::search` (`use_hybrid=True`), combining BM25 keyword scores with semantic cosine similarity via per-query min-max normalization and a 0.5/0.5 weighted blend, re-ranking all chunks in the collection rather than just the semantic top-k.
+
+**Why I picked it:** This was on my Milestone 4 menu from the start, and my diagnosis had already reasoned (without empirically testing) that hybrid search likely wouldn't help my specific adversarial questions, since their key terms ("cheapest," "London") don't exist anywhere in my corpus. I wanted to actually measure that prediction rather than leave it as untested reasoning.
+
+**What happened:** Ran the full test suite with `--hybrid`:
+
+- All 5 original criteria still showed `pass` - but with drastically different (lower) distances than semantic-only search: e.g. "railway line north of Brightwater" dropped from 0.266 to 0.000.
+- The out-of-scope gate completely broke: **0 of 5 refused**, down from 5 of 5. "What is the capital of Mongolia?" - a question with zero legitimate connection to a British town-guide corpus - scored a best distance of 0.163, comfortably inside my 0.66 cutoff.
+
+**Diagnosis:** My hybrid implementation normalizes semantic and BM25 scores independently *per query*, using min-max normalization over that query's own candidate set. By construction, the single closest-matching chunk for *any* query - however irrelevant the question actually is - gets normalized to the maximum value, 1.0. This means every query produces an artificially inflated "best score," regardless of whether the corpus actually contains anything relevant. My 0.66 cutoff was calibrated against absolute cosine distances from the original semantic-only search; this normalization scheme silently breaks that calibration for every query, not just adversarial ones.
+
+**Did it help?** No - it made things significantly worse. It didn't fix my diagnosed problem (adversarial questions slipping past the gate); it broke the gate's core function entirely, turning "3 of 4 adversarial questions incorrectly pass the gate" into "0 of 5 out-of-scope questions of any kind get refused." I'm keeping this in the write-up rather than reverting silently, because the mechanism is real, understood, and instructive: hybrid search needs a normalization scheme calibrated against a fixed, global scale - not one computed independently per query - or it will always defeat a distance-based relevance gate. A corrected version would need either a pre-computed global normalization (fit once, at index time, across representative queries) or a fixed BM25 score range rather than a per-query min-max.
 
 ### Run Log - After
 
