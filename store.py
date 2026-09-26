@@ -20,6 +20,7 @@ rest of the project if they were wrong:
 import os
 import shutil
 from dataclasses import dataclass
+import re
 
 # Must be set BEFORE chromadb is imported. Without it, some Chroma versions
 # print "Failed to send telemetry event ..." on every single call — which looks
@@ -49,6 +50,39 @@ _model = None
 # The model Chroma bundles. Anything else in config.EMBEDDING_MODEL means
 # "fetch that one from Hugging Face instead" — see `_embedder`.
 BUNDLED_MODEL = "all-MiniLM-L6-v2"
+
+_bm25_cache: dict[str, tuple] = {}
+
+
+def _tokenize(text: str) -> list[str]:
+    """Simple lowercase word tokenizer for BM25."""
+    return re.findall(r"[a-z0-9]+", text.lower())
+
+
+def _get_bm25_index(name: str, collection):
+    """
+    Build (and cache) a BM25 index over every chunk in a collection.
+
+    Rebuilt once per collection name per process, from whatever's currently
+    stored — this corpus is small enough (under 100 chunks) that scoring
+    every chunk on every hybrid query, rather than maintaining a persistent
+    BM25 store alongside Chroma, is simple and fast enough not to matter.
+    """
+    if name in _bm25_cache:
+        return _bm25_cache[name]
+
+    from rank_bm25 import BM25Okapi
+
+    raw = collection.get(include=["documents", "metadatas"])
+    docs = raw["documents"]
+    metas = raw["metadatas"]
+    ids = raw["ids"]
+
+    tokenized = [_tokenize(d) for d in docs]
+    bm25 = BM25Okapi(tokenized)
+
+    _bm25_cache[name] = (bm25, docs, metas, ids)
+    return _bm25_cache[name]
 
 
 class _OnnxEmbedder:
@@ -183,11 +217,20 @@ def search(
     top_k: int | None = None,
     corpus: str | None = None,
     variant: str = "default",
+    use_hybrid: bool = False,
+    hybrid_alpha: float = 0.5,
 ) -> list[Result]:
     """
     Retrieve the chunks closest in meaning to a question.
 
     Returns them nearest-first, each with its distance.
+
+    use_hybrid=True (off by default, added as a Week 2 second improvement)
+    blends semantic distance with BM25 keyword overlap, scored over every
+    chunk in the collection rather than just the semantic top-k, then
+    re-ranks. This corpus is small enough (under 100 chunks) that scoring
+    everything is cheap. hybrid_alpha weights semantic vs. keyword — 0.5 is
+    an even split.
     """
     top_k = top_k or config.TOP_K
     name = config.collection_name(corpus, variant)
@@ -199,22 +242,73 @@ def search(
             f"No index called '{name}'. Run `python app.py index` first."
         ) from exc
 
-    raw = collection.query(
-        query_embeddings=embed([question]),
-        n_results=min(top_k, collection.count()),
-    )
+    if not use_hybrid:
+        raw = collection.query(
+            query_embeddings=embed([question]),
+            n_results=min(top_k, collection.count()),
+        )
+        results: list[Result] = []
+        for text, meta, distance in zip(
+            raw["documents"][0], raw["metadatas"][0], raw["distances"][0]
+        ):
+            results.append(
+                Result(
+                    text=text,
+                    source=str(meta.get("source", "unknown")),
+                    label=f"{meta.get('source', 'unknown')}#{meta.get('index', 0)}",
+                    distance=float(distance),
+                    produced_by=str(meta.get("produced_by", "unknown")),
+                )
+            )
+        return results
 
-    results: list[Result] = []
-    for text, meta, distance in zip(
-        raw["documents"][0], raw["metadatas"][0], raw["distances"][0]
-    ):
+    # --- hybrid path ---
+    n = collection.count()
+    raw = collection.query(query_embeddings=embed([question]), n_results=n)
+    docs = raw["documents"][0]
+    metas = raw["metadatas"][0]
+    distances = raw["distances"][0]
+
+    bm25, bm25_docs, bm25_metas, bm25_ids = _get_bm25_index(name, collection)
+    bm25_scores = bm25.get_scores(_tokenize(question))
+    # bm25_docs is in a different order than the semantic query results, so
+    # index BM25 scores by source#index rather than assuming aligned order.
+    bm25_by_label = {
+        f"{m.get('source', 'unknown')}#{m.get('index', 0)}": score
+        for m, score in zip(bm25_metas, bm25_scores)
+    }
+
+    def _norm(values):
+        lo, hi = min(values), max(values)
+        if hi - lo < 1e-9:
+            return [0.5 for _ in values]
+        return [(v - lo) / (hi - lo) for v in values]
+
+    semantic_sim = [1.0 - d for d in distances]  # higher = better
+    labels = [f"{m.get('source', 'unknown')}#{m.get('index', 0)}" for m in metas]
+    keyword_scores = [bm25_by_label.get(label, 0.0) for label in labels]
+
+    sem_norm = _norm(semantic_sim)
+    kw_norm = _norm(keyword_scores)
+
+    combined = [
+        hybrid_alpha * s + (1 - hybrid_alpha) * k
+        for s, k in zip(sem_norm, kw_norm)
+    ]
+
+    ranked = sorted(
+        zip(docs, metas, combined), key=lambda row: row[2], reverse=True
+    )[:top_k]
+
+    results = []
+    for text, meta, score in ranked:
         results.append(
             Result(
                 text=text,
                 source=str(meta.get("source", "unknown")),
                 label=f"{meta.get('source', 'unknown')}#{meta.get('index', 0)}",
-                distance=float(distance),
-                produced_by=str(meta.get("produced_by", "unknown")),
+                distance=float(1.0 - score),  # keep "lower is better" contract
+                produced_by=str(meta.get("produced_by", "unknown")) + " (hybrid)",
             )
         )
     return results

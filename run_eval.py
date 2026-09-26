@@ -5,6 +5,7 @@ Run your test questions repeatedly and write the results down.
     python run_eval.py                 three runs, the default
     python run_eval.py --runs 5        more runs
     python run_eval.py --label after   name this run, e.g. before/after a fix
+    python run_eval.py --hybrid        use hybrid BM25+semantic search
 
 This does the mechanical half of week 2 for you: it asks each of your questions
 the same way three separate times, with caching turned off so you get three
@@ -51,13 +52,15 @@ def load_scorer():
     return judge if callable(judge) else None
 
 
-def run_once(question: str, top_k, threshold, corpus, variant):
+def run_once(question: str, top_k, threshold, corpus, variant, use_hybrid=False):
     """One question, one run. Returns the answer and what retrieval gave us."""
     from store import search
     import gate
     from generate import answer_from_chunks
 
-    results = search(question, top_k=top_k, corpus=corpus, variant=variant)
+    results = search(
+        question, top_k=top_k, corpus=corpus, variant=variant, use_hybrid=use_hybrid
+    )
     decision = gate.check(results, threshold=threshold)
 
     if not decision.passed:
@@ -76,6 +79,7 @@ def main():
     parser.add_argument("--variant", default="default")
     parser.add_argument("--top-k", type=int, default=None)
     parser.add_argument("--threshold", type=float, default=None)
+    parser.add_argument("--hybrid", action="store_true", help="use hybrid BM25+semantic search")
     args = parser.parse_args()
 
     corpus = args.corpus or config.CORPUS
@@ -110,7 +114,7 @@ def main():
         run_results = []
         for run in range(1, args.runs + 1):
             answer, results, decision = run_once(
-                question, top_k, threshold, corpus, args.variant
+                question, top_k, threshold, corpus, args.variant, use_hybrid=args.hybrid
             )
             passed = judge(question, expects, answer, results) if judge else None
             run_results.append(passed)
@@ -131,7 +135,7 @@ def main():
 
         rows.append({"question": question, "expects": expects, "runs": run_results})
 
-    gate_rows = check_out_of_scope(top_k, threshold, corpus, args.variant)
+    gate_rows = check_out_of_scope(top_k, threshold, corpus, args.variant, use_hybrid=args.hybrid)
 
     write_report(
         rows, transcript, gate_rows, args, corpus, top_k, threshold,
@@ -139,7 +143,7 @@ def main():
     )
 
 
-def check_out_of_scope(top_k, threshold, corpus, variant):
+def check_out_of_scope(top_k, threshold, corpus, variant, use_hybrid=False):
     """Put every OUT_OF_SCOPE question through retrieval and the gate.
 
     Criterion 3 in criteria.md is about questions the corpus doesn't cover, and
@@ -158,7 +162,9 @@ def check_out_of_scope(top_k, threshold, corpus, variant):
     print("\nOut-of-scope questions (the gate should refuse these):")
     rows = []
     for question in questions:
-        results = search(question, top_k=top_k, corpus=corpus, variant=variant)
+        results = search(
+            question, top_k=top_k, corpus=corpus, variant=variant, use_hybrid=use_hybrid
+        )
         decision = gate.check(results, threshold=threshold)
         refused = not decision.passed
         print(f"  {'refused' if refused else 'LET THROUGH'}  "
@@ -191,6 +197,7 @@ def write_report(rows, transcript, gate_rows, args, corpus, top_k, threshold, sc
         "",
         f"- Produced by: `run_eval.py::main`",
         f"- Retrieval: `store.py::search`, chunks from `chunker.py::split_documents`",
+        f"- Hybrid search: {'ON' if args.hybrid else 'off'}",
         f"- Corpus: `{corpus}` (index variant `{args.variant}`)",
         f"- top-k: {top_k} · relevance cutoff: {threshold}",
         f"- Runs per question: {n}, caching off",
