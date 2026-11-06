@@ -20,7 +20,7 @@ import shutil
 import sys
 from pathlib import Path
 
-# --- Course-wide pins -------------------------------------------------------
+# --- Pins -------------------------------------------------------------------
 # The model lives here, in one place, so a provider change is one edit.
 # Override locally by setting AI201_MODEL in .env.
 MODEL = os.getenv("AI201_MODEL", "gemini-3.5-flash-lite")
@@ -107,7 +107,7 @@ def check_packages():
         return report(
             "FAIL",
             "requirements.txt",
-            f"Not found next to test.py. Run this from inside the starter repo folder.",
+            f"Not found next to test.py. Run this from inside the repo folder.",
         )
 
     missing, wrong = [], []
@@ -247,10 +247,9 @@ def check_chroma():
         return report("SKIP", "Vector store", "chromadb not installed yet.")
     try:
         client = chromadb.EphemeralClient()
-        # Cosine is set explicitly here for the same reason the starter sets it:
-        # Chroma defaults to squared L2, which would make the course's distance
-        # threshold meaningless. Vectors are passed in directly, the way the
-        # starter does it — Chroma stores and searches, it doesn't embed.
+        # Cosine is set explicitly, as in the app: Chroma defaults to squared L2,
+        # which would make the distance threshold meaningless. Vectors are passed
+        # in directly; Chroma stores and searches, it doesn't embed.
         col = client.create_collection("envcheck", metadata={"hnsw:space": "cosine"})
         col.add(ids=["a", "b"], documents=["the library closes at ten", "parking costs four dollars"],
                 embeddings=[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
@@ -279,7 +278,7 @@ def check_api_call(key):
         elif "API key" in msg or "401" in msg or "403" in msg or "PERMISSION" in msg:
             hint = "\n         The key was rejected. Create a new one and paste it into .env again."
         elif "404" in msg or "NOT_FOUND" in msg:
-            hint = f"\n         The model string '{MODEL}' did not resolve. Post in the help channel."
+            hint = f"\n         The model string '{MODEL}' did not resolve. Check the model name in .env."
         report("FAIL", "Model call", f"{type(e).__name__}: {msg[:160]}{hint}")
 
 
@@ -306,12 +305,11 @@ def main():
           f"{len(warned)} to look at, {len(skipped)} skipped\n")
     if failed:
         print("Not ready yet. Fix the FAIL lines above, then run test.py again.")
-        print("Still stuck after one honest attempt? Post the whole output in the")
-        print("help channel — the day before class, not the morning of.\n")
+        print("Still stuck? Post the whole output in the help channel.\n")
         return 1
     if skipped:
         print("You're set for what's installed. The skipped checks are packages")
-        print("this unit's requirements.txt doesn't pin yet — that's expected.\n")
+        print("this repo's requirements.txt doesn't pin yet — that's expected.\n")
         return 0
     print("You're set.\n")
     return 0

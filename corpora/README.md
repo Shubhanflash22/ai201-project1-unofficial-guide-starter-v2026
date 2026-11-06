@@ -1,14 +1,13 @@
 # The corpora
 
-Three corpora ship with this starter for your project, plus a fourth
-(`practice`) that your instructor uses in class. Pick one of the three in
-Milestone 1.
+Three corpora ship with this project, plus a fourth (`practice`) used for
+follow-along work. Pick one of the three.
 
 They are deliberately different from each other in **shape** — how long the
 documents are, and how the useful information sits inside them. That
 difference is the point: the right chunk size for short posts is not the
-right chunk size for long sectioned guides, and Milestone 3 is where that
-starts to matter.
+right chunk size for long sectioned guides, and it starts to
+matter once chunking is tuned.
 
 All three were written for this course. No real people are named.
 
@@ -28,7 +27,7 @@ line. Re-run `python app.py index` after switching.
 
 **Question-and-answer threads, with several people replying.** Twenty-three threads, each with three to five replies of very uneven length, disagreeing with each other as often as not. Real answers are spread across replies rather than sitting in one place.
 
-*Pick this if* you want messier material. Chunking is harder here — a reply boundary and a useful boundary are not the same thing — and that makes for a more interesting Milestone 3.
+*Pick this if* you want messier material. Chunking is harder here — a reply boundary and a useful boundary are not the same thing — and that makes for a more interesting chunking problem.
 
 23 documents · 12,490 characters · about 543 characters per document
 
@@ -42,9 +41,8 @@ line. Re-run `python app.py index` after switching.
 
 ## `practice`
 
-Not for your project. This is the small corpus your instructor uses for the
-in-class follow-along, kept separate so nothing done in class touches your
-graded work. It's twenty-eight documents about a board game that doesn't
+Not for the project. This is the small corpus used for the follow-along,
+kept separate so nothing done with it touches the graded work. It's twenty-eight documents about a board game that doesn't
 exist — twenty-four short ones of a paragraph or two, and four longer sectioned
 guides that a fixed-size chunker cuts straight through the middle of.
 
@@ -60,8 +58,7 @@ already did, and it earns no extra points. And you'll need to check that
 your relevance cutoff still separates in-corpus from out-of-corpus
 questions, since 0.6 was chosen against these three.
 
-That check is Milestone 4, and it is the same check that makes 0.6 a cutoff
-rather than a number. Treat the default as a starting point, not an answer —
+That check is the same one that makes 0.6 a cutoff rather than a number. Treat the default as a starting point, not an answer —
 it was set against the corpora above at their shipped chunk settings, and
-changing the chunking moves the distances underneath it. Measuring it
-yourself is the milestone.
+changing the chunking moves the distances underneath it. Measure it
+again after any chunking change.

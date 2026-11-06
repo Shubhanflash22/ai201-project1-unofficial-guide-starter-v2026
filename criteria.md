@@ -1,6 +1,6 @@
 # Acceptance criteria: The Unofficial Guide
 
-Five criteria that say what "working" means for this system, written in week 1
+Five criteria that say what "working" means for this system, written
 **before** any results existed.
 
 ---
@@ -40,7 +40,7 @@ stops it and the system returns "I don't have enough information about that" -
 in at least 4 of 5 tries.
 
 **Why this target:**
-I haven't set my final cutoff yet - that happens in Milestone 4 - but my
+I haven't set my final cutoff yet - that happens when I tune the cutoff - but my
 corpus is narrow (one fictional region's town guides), so I expect
 genuinely out-of-scope questions to land far outside it, with a clear gap
 between in-corpus and out-of-corpus distances. 4 of 5 leaves room for one

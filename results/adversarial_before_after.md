@@ -4,7 +4,7 @@ These four questions were designed to stress-test criterion 3 more rigorously
 than the original `OUT_OF_SCOPE` set: topically adjacent to city_guides rather
 than wildly unrelated. Run by hand via `python app.py ask "..."` (the same
 `search` -> `gate.check` -> `answer_from_chunks` path `run_eval.py` uses), before
-and after the Milestone 4 grounding-prompt change, with no other change in
+and after the grounding-prompt change, with no other change in
 between.
 
 - Produced by: manual runs, `app.py::ask`, same functions `run_eval.py` calls
