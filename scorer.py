@@ -17,8 +17,7 @@ What this does NOT do:
   - any deeper fact-checking. If the model said "12,000" but attributed it
     to the wrong town, this would still mark it correct, because it's only
     checking whether the expected string appears somewhere in the answer.
-    That's a real limitation worth naming in your diagnosis if it comes up,
-    not something to silently patch here.
+    That is a known limitation of this check.
 """
 
 import re
@@ -31,8 +30,8 @@ def _normalize(text: str) -> str:
 
 def judge(question: str, expects: str, answer: str, results) -> bool:
     if not expects:
-        # No expects phrase was written for this question — nothing to
-        # check against, so don't claim to have judged it.
+        # No expects phrase was written for this question, so there is
+        # nothing to check against and no verdict is claimed.
         return False
 
     normalized_expects = _normalize(expects)

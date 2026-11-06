@@ -1,19 +1,18 @@
 """
 Stages 3 and 4 of the pipeline: embedding chunks and retrieving them.
 
-Three things in here are worth knowing about, because they'd quietly break the
-rest of the project if they were wrong:
+Three things in here would quietly break the rest of the project if wrong:
 
 1. The Chroma collection is created with cosine distance, explicitly. Chroma
-   defaults to squared L2, and the 0.6 threshold the course uses is calibrated
-   against cosine. Getting this wrong makes every distance number meaningless.
+   defaults to squared L2, and the relevance threshold is calibrated against
+   cosine. Getting this wrong makes every distance number meaningless.
 
-2. `search` returns the distance alongside each chunk. Milestone 4 has you
-   compare distances, so they have to be visible.
+2. `search` returns the distance alongside each chunk, so distances can be
+   compared.
 
 3. The embedding model is the one Chroma bundles, not one loaded through
-   `sentence-transformers`. It is the same model — `all-MiniLM-L6-v2`, 384
-   dimensions — but it arrives as an ONNX build from Chroma's own CDN, so the
+   `sentence-transformers`. It is the same model, `all-MiniLM-L6-v2` (384
+   dimensions), but it arrives as an ONNX build from Chroma's own CDN, so the
    install needs neither PyTorch nor a reachable Hugging Face. See `_embedder`.
 """
 
@@ -23,9 +22,8 @@ from dataclasses import dataclass
 import re
 
 # Must be set BEFORE chromadb is imported. Without it, some Chroma versions
-# print "Failed to send telemetry event ..." on every single call — which looks
-# exactly like a real error, isn't one, and cost a previous cohort a lot of
-# confused help-channel messages.
+# print "Failed to send telemetry event ..." on every call, which looks like a
+# real error but isn't.
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
 import chromadb  # noqa: E402
@@ -107,10 +105,9 @@ def _sentence_transformer(name: str):
     """
     The escape hatch: any model that isn't the bundled one.
 
-    Week 2's "try a second embedding model" stretch option comes through here,
-    and so does anything you set `EMBEDDING_MODEL` to. This path *does* need
-    `sentence-transformers` and a reachable Hugging Face, neither of which the
-    default install has — which is the whole point of the default install.
+        Anything set in `EMBEDDING_MODEL` other than the default comes through
+        here. This path needs `sentence-transformers` and a reachable Hugging
+        Face, neither of which the default install has.
     """
     try:
         from sentence_transformers import SentenceTransformer
@@ -131,8 +128,7 @@ def _embedder():
     """
     Load the embedding model once and keep it.
 
-    First call is slow — it downloads about 80 MB. That's why setup happens
-    before class.
+        The first call is slow because it downloads about 80 MB.
     """
     global _model
 
@@ -140,7 +136,7 @@ def _embedder():
         return _model
 
     # Used only by this repo's own smoke test, which runs where no model can be
-    # downloaded at all. Never set this yourself.
+    # downloaded. Not for normal use.
     if os.getenv("AI201_FAKE_EMBEDDINGS") == "1":
         from _smoke_embedder import FakeEmbedder
 
@@ -154,7 +150,7 @@ def _embedder():
 
 
 def embed(texts: list[str]) -> list[list[float]]:
-    """Turn text into vectors. Runs on your machine, costs no API quota."""
+    """Turn text into vectors. Runs locally and uses no API quota."""
     vectors = _embedder().encode(texts, show_progress_bar=False)
     # sentence-transformers and the smoke stand-in return something with a
     # .tolist(); _OnnxEmbedder has already done that conversion itself.
@@ -176,10 +172,9 @@ def build_index(
     """
     Embed every chunk and store it.
 
-    `variant` lets you keep more than one index of the same corpus at the same
-    time. In week 2, when you compare two chunking strategies, index the second
-    one as variant="v2" and you can query both instead of deleting the first
-    and starting over.
+        `variant` lets you keep more than one index of the same corpus at the same
+        time, for example to compare two chunking strategies by indexing the second
+        as variant="v2" and querying both.
     """
     name = config.collection_name(corpus, variant)
     client = _client()
@@ -191,8 +186,8 @@ def build_index(
 
     collection = client.create_collection(
         name=name,
-        # ⚠️ Do not remove. Chroma defaults to squared L2, and every distance
-        # number in this course assumes cosine.
+        # Do not remove. Chroma defaults to squared L2, and every distance
+        # number here assumes cosine.
         metadata={"hnsw:space": "cosine"},
     )
 
@@ -223,14 +218,13 @@ def search(
     """
     Retrieve the chunks closest in meaning to a question.
 
-    Returns them nearest-first, each with its distance.
+        Returns them nearest-first, each with its distance.
 
-    use_hybrid=True (off by default, added as a Week 2 second improvement)
-    blends semantic distance with BM25 keyword overlap, scored over every
-    chunk in the collection rather than just the semantic top-k, then
-    re-ranks. This corpus is small enough (under 100 chunks) that scoring
-    everything is cheap. hybrid_alpha weights semantic vs. keyword — 0.5 is
-    an even split.
+        use_hybrid=True (off by default) blends semantic distance with BM25
+        keyword overlap, scored over every chunk in the collection rather than
+        just the semantic top-k, then re-ranks. This corpus is small enough (under
+        100 chunks) that scoring everything is cheap. hybrid_alpha weights semantic
+        vs. keyword; 0.5 is an even split.
     """
     top_k = top_k or config.TOP_K
     name = config.collection_name(corpus, variant)

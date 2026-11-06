@@ -5,14 +5,14 @@ This runs *before* the model does. It looks at how close the best retrieved
 chunk actually is, and if nothing came back close enough it refuses the
 question outright.
 
-Why this exists as its own step, rather than just asking the model nicely to
-admit when it doesn't know: if you only ask nicely, it will sometimes ignore
-you and write something confident and wrong. Those answers are much harder to
-catch than obvious errors. Deciding in your own code when there's nothing worth
-answering from is more reliable than hoping.
+Why this is its own step, rather than just asking the model to admit when it
+doesn't know: asking alone sometimes fails, and the model writes something
+confident and wrong. Those answers are much harder to catch than obvious
+errors. Deciding in code when there is nothing worth answering from is more
+reliable.
 
-You keep the polite instruction too — it's in generate.py — but as a second
-layer. The gate catches the clear misses; the prompt catches the near ones.
+The polite instruction is still in generate.py, as a second layer. The gate
+catches the clear misses; the prompt catches the near ones.
 """
 
 from dataclasses import dataclass
@@ -46,8 +46,8 @@ def check(results: list[Result], threshold: float | None = None) -> GateDecision
     """
     Decide whether the retrieved chunks are close enough to answer from.
 
-    Remember: LOWER distance is better. A question passes when its best chunk
-    is *under* the threshold.
+        Lower distance is better. A question passes when its best chunk is
+        *under* the threshold.
     """
     threshold = config.THRESHOLD if threshold is None else threshold
 

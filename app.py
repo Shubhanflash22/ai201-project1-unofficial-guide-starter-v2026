@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-The Unofficial Guide — command line.
+The Unofficial Guide: command line.
 
     python app.py index                  build the search index (do this first)
     python app.py ask "your question"    ask one question
     python app.py ask                    ask questions until you quit
-    python app.py chunks                 print sample chunks      (Milestone 3)
-    python app.py retrieve "question"    show distances, no answer (Milestone 4)
+    python app.py chunks                 print sample chunks
+    python app.py retrieve "question"    show distances, no answer
     python app.py corpora                list the available corpora
 
 Every command takes --corpus NAME to work with a different corpus without
@@ -55,13 +55,14 @@ def cmd_index(args):
 
 
 def _chunks_from_doc(chunks, wanted):
-    """Every chunk that came out of one source document, in order.
+    """
+    Every chunk that came out of one source document, in order.
 
-    This is the sample to use when you re-chunk and want to compare. The
-    default sample is taken by stride across the whole corpus, so as soon as a
-    new chunker changes the chunk count it lands on different documents and
-    there is nothing to compare. One named document's chunks are the same
-    material before and after, however many pieces it was cut into.
+        Use this sample to compare chunkers. The default sample is taken by stride
+        across the whole corpus, so as soon as a new chunker changes the chunk
+        count it lands on different documents and there is nothing to compare. One
+        named document's chunks are the same material before and after, however
+        many pieces it was cut into.
     """
     matches = [c for c in chunks if c.source == wanted]
     if not matches:
@@ -99,7 +100,7 @@ def _chunks_at(chunks, spec):
 
 
 def cmd_chunks(args):
-    """Milestone 3. Print chunks so you can read them and paste them."""
+    """Print sample chunks with their source file and the function that produced them."""
     from ingest import load_documents
     from chunker import split_documents
 
@@ -126,9 +127,7 @@ def cmd_chunks(args):
         )
 
     print(f"{heading}\n")
-    print("Paste these into your README under Sample Chunks. The rubric asks")
-    print("for the source file and the function that produced them — both are")
-    print("printed for you below.\n")
+    print("Each chunk below shows its source file and the function that produced it.\n")
 
     for i, chunk in enumerate(sample, 1):
         print("=" * 70)
@@ -140,12 +139,12 @@ def cmd_chunks(args):
         print(chunk.text)
         print()
 
-    print("For each one, ask: could someone answer a question using only this,")
-    print("without reading what came before or after?")
+    print("For each one, check whether it can answer a question on its own,")
+    print("without the text that came before or after.")
 
 
 def cmd_retrieve(args):
-    """Milestone 4. Retrieval only, with distances, and no model call."""
+    """Retrieval only, with distances and no model call."""
     from store import search
     import gate
 
@@ -170,9 +169,8 @@ def cmd_retrieve(args):
     decision = gate.check(results)
     print(f"\nGate: {decision.explanation}")
     print("\nLower is better. 0.3 is a close match, 0.9 is unrelated.")
-    print("Milestone 4: run your five questions, then the five in OUT_OF_SCOPE")
-    print("that your documents clearly don't cover, and look for the gap")
-    print("between the two groups. Your cutoff goes in that gap.")
+    print("Compare in-corpus questions with the OUT_OF_SCOPE ones: the cutoff")
+    print("belongs in the gap between the two groups.")
 
 
 def ask_pipeline(
@@ -184,20 +182,21 @@ def ask_pipeline(
     on_gate=None,
     on_prompt=None,
 ):
-    """Retrieve, gate, answer. Returns the outcome and prints nothing.
+    """
+    Retrieve, gate, answer. Returns the outcome and prints nothing.
 
-    One question through all five stages, with the result handed back as a
-    plain dict instead of printed. `_ask_one` below prints it for the command
-    line; `serve.py` turns the same dict into JSON. The relevance gate is the
-    reason this is one function rather than two: a web wrapper that re-decided
-    when to refuse would be a second cutoff you'd have to keep in step with
-    this one, and it would drift.
+        One question through all five stages, with the result handed back as a
+        plain dict instead of printed. `_ask_one` below prints it for the command
+        line; `serve.py` turns the same dict into JSON. The relevance gate is the
+        reason this is one function rather than two: a web wrapper that re-decided
+        when to refuse would be a second cutoff to keep in step with this one, and
+        it would drift.
 
-    The two optional callbacks let the command line print as it goes without
-    this function knowing anything about printing: `on_gate` is handed the gate
-    decision as soon as it's made, and `on_prompt` is handed the assembled
-    prompt just before it goes out — that's how `--show-prompt` shows you the
-    prompt while the model is still thinking rather than after.
+        The two optional callbacks let the command line print as it goes without
+        this function knowing anything about printing: `on_gate` is handed the gate
+        decision as soon as it's made, and `on_prompt` is handed the assembled
+        prompt just before it goes out, which is how `--show-prompt` shows the
+        prompt while the model is still thinking.
     """
     from store import search
     import gate
@@ -329,7 +328,7 @@ def build_parser():
     parser.add_argument(
         "--variant",
         default="default",
-        help="index variant, for holding two chunkings at once (week 2)",
+        help="index variant, for holding two chunkings at once",
     )
 
     sub = parser.add_subparsers(dest="command", required=True)
@@ -339,7 +338,7 @@ def build_parser():
     p_index = sub.add_parser("index", help="build the search index")
     p_index.set_defaults(func=cmd_index)
 
-    p_chunks = sub.add_parser("chunks", help="print sample chunks (Milestone 3)")
+    p_chunks = sub.add_parser("chunks", help="print sample chunks")
     p_chunks.add_argument("-n", type=int, default=5, help="how many to print")
     p_chunks.add_argument(
         "--from-doc",
@@ -357,7 +356,7 @@ def build_parser():
     )
     p_chunks.set_defaults(func=cmd_chunks)
 
-    p_ret = sub.add_parser("retrieve", help="show distances only (Milestone 4)")
+    p_ret = sub.add_parser("retrieve", help="show distances only")
     p_ret.add_argument("question")
     p_ret.add_argument("--top-k", type=int)
     p_ret.set_defaults(func=cmd_retrieve)
@@ -383,7 +382,7 @@ def main():
     except KeyboardInterrupt:
         print("\nStopped.")
         sys.exit(130)
-    except Exception as exc:  # noqa: BLE001 — students read this, not a traceback
+    except Exception as exc:  # noqa: BLE001 - a reader gets this, not a traceback
         print(f"\n{type(exc).__name__}: {exc}\n", file=sys.stderr)
         sys.exit(1)
 

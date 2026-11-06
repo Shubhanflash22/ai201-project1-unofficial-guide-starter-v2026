@@ -1,30 +1,25 @@
 #!/usr/bin/env python3
 """
-The Unofficial Guide — the same pipeline, over HTTP.
+The Unofficial Guide: the same pipeline, over HTTP.
 
     python serve.py                          run it locally on port 5000
     gunicorn serve:app                       run it the way a host runs it
 
-Nothing new happens in this file. It is a wrapper: a request comes in, it
-hands the question to `app.py::ask_pipeline` — the exact function the command
-line uses — and hands the answer back as JSON. Retrieval, the relevance gate
-and the grounded prompt all still live where they lived. If you change how
-your system answers, you change it in those files and this one follows.
+This file is a wrapper: a request comes in, it hands the question to
+`app.py::ask_pipeline` (the same function the command line uses) and returns
+the answer as JSON. Retrieval, the relevance gate and the grounded prompt all
+live where they always did, so changes to how the system answers go in those
+files.
 
 Two routes:
 
     POST /ask       {"question": "..."} in, the answer and its sources out
     GET  /health    is the service up, and is there an index to search
 
-Why this exists: `app.py` runs once and exits, which is fine on your laptop
-and impossible to deploy. A hosted service has to stay up and wait for
-requests. This is the smallest thing that does that.
+`app.py` runs once and exits, which suits a laptop but not a deployment. A
+hosted service has to stay up and wait for requests.
 
-⚠️ There is deliberately no logging, no timing and no metrics in this file.
-Week 9 has you build the structured log yourself — the request line, the
-timing field everyone skips, the whole instrument-before-you-deploy exercise.
-Shipping a logger here would hand you the answer to that. Add yours in week 9;
-this file stays the bare shell until then.
+There is deliberately no logging, timing or metrics in this file.
 """
 
 import os
@@ -38,13 +33,13 @@ app = Flask(__name__)
 
 @app.get("/health")
 def health():
-    """Is the service up, and is there an index to search?
+    """
+    Is the service up, and is there an index to search?
 
-    Two different questions, and the second one is the one that bites. A
-    freshly deployed service answers this route happily while every /ask
-    returns "no index" — hosts give you no disk that survives a restart, so
-    the index has to be built as part of getting the service up. Checking
-    here means you find that out in one request instead of five.
+        These are two different questions, and the second one is the one that
+        bites. A freshly deployed service answers this route happily while every
+        /ask returns "no index", because hosts give no disk that survives a
+        restart, so the index has to be built as part of getting the service up.
     """
     from store import index_exists
 
@@ -65,11 +60,12 @@ def health():
 
 @app.post("/ask")
 def ask():
-    """One question in, one grounded answer out.
+    """
+    One question in, one grounded answer out.
 
-    A refused question is a 200, not an error. The gate refusing is your
-    system working — it is an answer, and the JSON says so with
-    `"refused": true` so whatever calls this can tell the two apart.
+        A refused question is a 200, not an error. The gate refusing is the system
+        working: it is an answer, and the JSON says so with `"refused": true` so
+        the caller can tell the two apart.
     """
     from app import ask_pipeline
 
@@ -89,7 +85,7 @@ def ask():
 
     try:
         outcome = ask_pipeline(question, corpus=config.CORPUS)
-    except Exception as exc:  # noqa: BLE001 — a reader gets this, not a traceback
+    except Exception as exc:  # noqa: BLE001 - a reader gets this, not a traceback
         return jsonify({"error": f"{type(exc).__name__}: {exc}"}), 500
 
     return jsonify(
@@ -106,17 +102,14 @@ def ask():
 
 
 def main():
-    # Hosts tell you which port to listen on through PORT, and they expect you
-    # on 0.0.0.0. Binding 127.0.0.1 instead works perfectly on your laptop and
-    # then answers nothing at all once deployed, because the host's router
-    # can't reach a socket that only accepts connections from inside the
-    # container. It is the single most common way a first deploy "succeeds"
-    # and is unreachable.
+    # Hosts set the port through PORT and expect the service on 0.0.0.0.
+    # Binding 127.0.0.1 works locally but answers nothing once deployed,
+    # because the host's router can't reach a socket that only accepts
+    # connections from inside the container.
     port = int(os.getenv("PORT", "5000"))
 
-    # Debug mode reloads on save, which is handy, and prints a console that
-    # runs arbitrary code, which is not something to leave switched on where
-    # strangers can reach it. Off unless you ask for it.
+    # Debug mode reloads on save and exposes a console that runs arbitrary
+    # code, so it stays off unless requested.
     debug = os.getenv("AI201_DEBUG", "0") == "1"
 
     print(f"Serving The Unofficial Guide on http://localhost:{port}")

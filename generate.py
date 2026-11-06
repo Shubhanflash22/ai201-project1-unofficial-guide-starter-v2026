@@ -1,30 +1,27 @@
 """
 Stage 5 of the pipeline: writing the answer.
 
-This is the only part of your system that calls out to a service. Everything
-else runs on your laptop.
+This is the only part of the system that calls out to a service. Everything
+else runs locally.
 
-Every outgoing call in this course goes through `generate()` below. That
-matters for a practical reason: the free tier allows only a small number of
-calls per minute, and a previous cohort ran into that wall hard. Rather than
-asking three hundred students to each write their own pacing code, the pacing
-lives here, once.
+Every outgoing call goes through `generate()` below. The free tier allows only
+a small number of calls per minute, so the pacing lives here, once.
 
-What this function does for you:
+What this module does:
 
-  • Paces requests so you stay under the per-minute limit, and tells you when
-    it's waiting. A pause is the limiter doing its job, not a hang.
-  • Caches repeated prompts while you're building, so re-running the same
-    question twenty times while you debug costs one call.
-  • Stops with a warning if a session goes through an unreasonable number of
-    calls, instead of silently draining your whole day's allowance.
-  • Retries when the service says you're going too fast.
-  • Counts your calls, and the tokens they used, so what a run cost is a
-    number you can see rather than one you estimate.
+  - Paces requests to stay under the per-minute limit, and prints when it is
+    waiting. A pause is the limiter doing its job, not a hang.
+  - Caches repeated prompts while building, so re-running the same question
+    twenty times while debugging costs one call.
+  - Stops with a warning if a session goes through an unreasonable number of
+    calls, instead of silently draining the daily allowance.
+  - Retries when the service says requests are coming too fast.
+  - Counts calls and the tokens they used, so what a run cost is a number that
+    can be read rather than estimated.
 
-⚠️ Caching is ON while you build and OFF during evaluation. Your test week
+Caching is ON while building and OFF during evaluation, because evaluation
 needs three real answers to the same question, not one answer three times over.
-`run_eval.py` passes cache=False for you.
+`run_eval.py` passes cache=False.
 """
 
 import hashlib
@@ -122,16 +119,16 @@ def _check_budget() -> None:
 
 
 def _record_tokens(response) -> None:
-    """Add one response's token counts to this session's running totals.
+    """
+    Add one response's token counts to this session's running totals.
 
-    These come off the response itself, which is the point. When you work out
-    what a run costs, a number read back from the service is a measurement and
-    a number multiplied out of the pricing page is a guess — they disagree more
-    often than you'd think, and only one of them is evidence.
+        These come off the response itself. A number read back from the service is
+        a measurement; a number multiplied out of the pricing page is a guess, and
+        the two often disagree.
 
-    Deliberately forgiving: `usage_metadata` is missing on some responses and
-    half-filled on others, and a token count you didn't get is never a good
-    enough reason to end someone's run.
+        Deliberately forgiving: `usage_metadata` is missing on some responses and
+        half-filled on others, and a missing token count is never a good enough
+        reason to end a run.
     """
     global _session_prompt_tokens, _session_output_tokens
 
@@ -166,11 +163,11 @@ def call_count() -> int:
 
 
 def token_counts() -> dict[str, int]:
-    """Tokens this session actually used, as reported by the service.
+    """
+    Tokens this session actually used, as reported by the service.
 
-    Cache hits are not in here, because they never reached the service and so
-    cost nothing. That is a real difference between a run and a cached rerun,
-    and it is worth knowing which one you measured.
+        Cache hits are not counted, because they never reached the service and
+        cost nothing. That is a real difference between a run and a cached rerun.
     """
     return {
         "prompt": _session_prompt_tokens,
@@ -202,15 +199,15 @@ def generate(prompt: str, system: str | None = None, cache: bool = True) -> str:
     """
     Send a prompt and get text back.
 
-    Args:
-        prompt: what you're asking.
-        system: an optional instruction about how to behave.
-        cache:  reuse an identical earlier answer if there is one. Leave this
-                True while building. Pass False when you're evaluating — three
-                runs of the same question have to be three real answers.
+        Args:
+            prompt: what to ask.
+            system: an optional instruction about how to behave.
+            cache:  reuse an identical earlier answer if there is one. True while
+                    building. Pass False when evaluating, since three runs of the
+                    same question have to be three real answers.
 
-    Every call in this course goes through here. If you need to change how the
-    model is called, change it in this one place.
+        Every call goes through here, so changes to how the model is called belong
+        in this one place.
     """
     global _session_calls, _cache_hits
 
@@ -286,10 +283,9 @@ def build_prompt(question: str, results) -> str:
     """
     Assemble the grounded prompt out of retrieved chunks.
 
-    Split out from `answer_from_chunks` so the prompt can be looked at without
-    being sent — `python app.py ask "..." --show-prompt` prints exactly what
-    this returns. Reading it once is the fastest way to see that retrieval,
-    not the model, decides what an answer can possibly be based on.
+        Split out from `answer_from_chunks` so the prompt can be inspected without
+        being sent: `python app.py ask "..." --show-prompt` prints exactly what
+        this returns.
     """
     context = "\n\n".join(
         f"[from {r.source}]\n{r.text}" for r in results
@@ -305,9 +301,8 @@ def answer_from_chunks(question: str, results, cache: bool = True) -> str:
     """
     Build a grounded prompt out of retrieved chunks and send it.
 
-    This is the second layer of grounding. The relevance gate in gate.py is the
-    first — it has already decided these chunks are close enough to be worth
-    answering from.
+        This is the second layer of grounding. The relevance gate in gate.py is the
+        first: it has already decided these chunks are close enough to answer from.
     """
     prompt = build_prompt(question, results)
     return generate(prompt, system=GROUNDING_INSTRUCTION, cache=cache)

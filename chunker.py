@@ -1,25 +1,14 @@
 """
 Stage 2 of the pipeline: splitting documents into chunks.
 
-⚠️ THIS IS THE FILE YOU CHANGE IN MILESTONE 3.
+`split_documents` splits each document on its own markdown headings, so one
+`## ` section becomes one chunk, prefixed with the document title. A leading
+section with almost no body is folded into the one that follows, and a section
+over MAX_CHUNK_CHARS is split on sentence boundaries.
 
-`split_documents` below is deliberately plain. It cuts every document into
-fixed-size pieces with a fixed overlap and pays no attention to where sentences
-or paragraphs end. It works, and it is not good.
-
-On a corpus of short posts it may not cut anything at all: `campus_life` comes
-out as 88 documents and 88 chunks, because almost nothing in it reaches 800
-characters. That is the baseline, not a bug - Milestone 3 is where you decide
-whether one post should stay one chunk.
-
-Your job in Milestone 3 is to replace the *body* of `split_documents` with a
-strategy that fits the documents you actually read in Milestone 1. Keep the
-name and the shape of what it returns - the rest of the pipeline calls it, and
-your README has to name the function that produced your chunks.
-
-If you get stuck for 30 minutes, `fallback_split` is the original. Switch back
-to it, write down what you saw, and move on. That's a real observation about
-your pipeline, not giving up.
+`fallback_split` is the original fixed-size chunker (character windows with
+overlap, no regard for sentence or paragraph boundaries). It is kept as the
+baseline to compare against.
 """
 
 from dataclasses import dataclass
@@ -36,7 +25,7 @@ class Chunk:
     text: str
     source: str        # which file it came from
     index: int         # which chunk within that file, starting at 0
-    produced_by: str   # the function that made it - cite this in your README
+    produced_by: str   # the function that made it
 
     @property
     def label(self) -> str:
@@ -49,10 +38,9 @@ def fallback_split(
     overlap: int | None = None,
 ) -> list[Chunk]:
     """
-    The starter's original chunker. Fixed-size character windows with overlap.
+    The original chunker: fixed-size character windows with overlap.
 
-    Keep this function. Milestone 3's stop rule points back at it, and having
-    something to compare your own strategy against is useful in week 2.
+        Kept as the baseline to compare the heading-based chunker against.
     """
     chunk_size = chunk_size or config.CHUNK_SIZE
     overlap = overlap or config.CHUNK_OVERLAP
@@ -81,7 +69,7 @@ def fallback_split(
     return chunks
 
 MAX_CHUNK_CHARS = 900   # safety ceiling - no real section in this corpus needs it
-OVERSIZE_OVERLAP = 100  # only used if MAX_CHUNK_CHARS is ever exceeded - distinct from config.CHUNK_OVERLAP, which only feeds fallback_split
+OVERSIZE_OVERLAP = 100  # only used if MAX_CHUNK_CHARS is ever exceeded; distinct from config.CHUNK_OVERLAP, which only feeds fallback_split
 MIN_STANDALONE_BODY = 40  # below this, a leading section is just a bare title
 
 

@@ -1,8 +1,7 @@
 """
 One-line descriptions of the provided corpora, for `python app.py corpora`.
 
-The full descriptions — which you should read before picking, in Milestone 1 —
-are in corpora/README.md.
+The full descriptions are in corpora/README.md.
 """
 
 from pathlib import Path

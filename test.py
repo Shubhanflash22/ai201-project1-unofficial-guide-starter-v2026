@@ -2,16 +2,13 @@
 """
 AI201 environment check.
 
-Run this before every class:
-
     python test.py
 
-It checks the things that actually break: your Python version, your virtual
-environment, your pinned packages, your API key, and one real call to the
-model. It is the same file in every unit's starter repo — the checks adapt
-to whatever that unit's requirements.txt pins.
+It checks the things that actually break: the Python version, the virtual
+environment, the pinned packages, the API key, and one real call to the model.
+The checks adapt to whatever this repo's requirements.txt pins.
 
-Nothing here touches your project code, and nothing here is graded.
+Nothing here touches the project code, and nothing here is graded.
 """
 
 import importlib
@@ -25,7 +22,7 @@ from pathlib import Path
 
 # --- Course-wide pins -------------------------------------------------------
 # The model lives here, in one place, so a provider change is one edit.
-# Override locally by setting AI201_MODEL in your .env.
+# Override locally by setting AI201_MODEL in .env.
 MODEL = os.getenv("AI201_MODEL", "gemini-3.5-flash-lite")
 
 MIN_PYTHON = (3, 11)
@@ -316,7 +313,7 @@ def main():
         print("You're set for what's installed. The skipped checks are packages")
         print("this unit's requirements.txt doesn't pin yet — that's expected.\n")
         return 0
-    print("You're set. See you in class.\n")
+    print("You're set.\n")
     return 0
 
 

@@ -1,36 +1,28 @@
 #!/usr/bin/env python3
 """
-Run your test questions repeatedly and write the results down.
+Run the test questions repeatedly and write the results down.
 
     python run_eval.py                 three runs, the default
     python run_eval.py --runs 5        more runs
     python run_eval.py --label after   name this run, e.g. before/after a fix
     python run_eval.py --hybrid        use hybrid BM25+semantic search
 
-This does the mechanical half of week 2 for you: it asks each of your questions
-the same way three separate times, with caching turned off so you get three
-real answers, and writes everything into results/ as a table with one row per
-question.
+Each question in questions.py is asked the same way three separate times, with
+caching turned off so there are three real answers, and everything is written
+into results/ as a table with one row per question.
 
-It also puts every question in `OUT_OF_SCOPE` through retrieval and the gate
-and records what happened, so criterion 3 — the one about out-of-corpus
-questions — has evidence in the same file as the other four. That part costs
-nothing: a question the gate refuses never reaches the model.
+Every question in `OUT_OF_SCOPE` also goes through retrieval and the gate, and
+what happened is recorded, so criterion 3 (out-of-corpus questions) has
+evidence in the same file as the other four. That part costs nothing: a
+question the gate refuses never reaches the model.
 
-That table is the raw material for your run log, not the run log itself. The
-submission template wants one row per *criterion* — aggregating your questions
-up into your criteria is your work, not the script's.
+The table is the raw material for the run log, not the run log itself. The run
+log has one row per *criterion*, which means aggregating the per-question rows
+by hand.
 
-⚠️ What it does NOT do is decide whether an answer was right.
-
-That judgment is yours, and you'll build it in class in week 2 as `scorer.py`.
-Until that file exists, the Run columns carry the raw answers and you read them
-yourself. Once it exists — a file called `scorer.py`, with a function
-`judge(question, expects, answer, results) -> bool` — this script finds it
-automatically and the Run columns carry verdicts instead.
-
-Deciding what counts as correct is the actual lesson. It would be easy to hand
-you a scorer; you'd learn nothing from it.
+If a `scorer.py` exists with `judge(question, expects, answer, results) -> bool`,
+this script uses it and the Run columns carry verdicts. Without one, the Run
+columns carry the raw answers.
 """
 
 import argparse
@@ -43,7 +35,7 @@ import questions as qs
 
 
 def load_scorer():
-    """Use scorer.py if the student has built it. Otherwise run unscored."""
+    """Use scorer.py if it exists. Otherwise run unscored."""
     try:
         import scorer  # noqa: PLC0415
     except ImportError:
@@ -90,7 +82,7 @@ def main():
     if not items:
         print(
             "questions.py has no questions in it yet.\n"
-            "Milestone 2 asks you to write five. Fill them in and run this again.",
+            "Fill in QUESTIONS and run this again.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -98,10 +90,10 @@ def main():
     judge = load_scorer()
     if judge is None:
         print("No scorer.py found — running unscored. Verdict column will be blank.")
-        print("You'll build scorer.py in class in week 2.\n")
+        print("Add a scorer.py with judge() to get verdicts.\n")
 
     if args.runs < 3:
-        print(f"⚠️  {args.runs} run(s). The submission asks for three.\n")
+        print(f"Note: {args.runs} run(s). Three are expected.\n")
 
     transcript = []
     rows = []
@@ -203,9 +195,9 @@ def write_report(rows, transcript, gate_rows, args, corpus, top_k, threshold, sc
         f"- Runs per question: {n}, caching off",
         f"- When: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}",
         "",
-        "This table is one row per QUESTION. The run log your README asks for is",
-        "one row per CRITERION, so aggregate these into it — criterion 1 is how many",
-        "of your questions had the answer in the retrieved chunks, and so on.",
+        "This table is one row per QUESTION. The run log is one row per",
+        "CRITERION, so aggregate these into it: criterion 1 is how many questions",
+        "had the answer in the retrieved chunks, and so on.",
         "",
         f"| Question | {run_headers} |",
         f"|---|{run_divider}|",
@@ -250,9 +242,7 @@ def write_report(rows, transcript, gate_rows, args, corpus, top_k, threshold, sc
             lines.append(f"| {question} | {row['best_distance']:.3f} | {verdict} |")
 
     lines += ["", "---", "", "## Real output", "",
-              "This is what the system actually produced. Paste the relevant parts",
-              "into your README underneath the table — the rubric asks for real",
-              "output as text, not a description of it.", ""]
+              "This is what the system actually produced.", ""]
 
     for entry in transcript:
         lines += [

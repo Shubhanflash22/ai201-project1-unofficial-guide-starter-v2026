@@ -2,8 +2,8 @@
 Stage 1 of the pipeline: loading documents off disk and cleaning them up.
 
 The five stages are loading, chunking, embedding, retrieval, and generation.
-When something goes wrong in week 2, your job is to work out which of the five
-it happened in. This is the first one.
+When something goes wrong, the first job is to work out which of the five it
+happened in. This is the first one.
 """
 
 import re
@@ -17,7 +17,7 @@ import config
 class Document:
     """One source file, cleaned and ready to be chunked."""
 
-    source: str   # the filename, e.g. "housing_lottery.txt" — this is what gets cited
+    source: str   # the filename, e.g. "housing_lottery.txt"; this is what gets cited
     text: str
 
 
@@ -25,9 +25,9 @@ def clean_text(raw: str) -> str:
     """
     Strip the stuff that isn't the real content.
 
-    Provided corpora are already fairly clean. If you bring your own documents
-    — especially anything scraped from a web page — this is where navigation
-    text, ads, cookie banners and repeated boilerplate come out.
+        The provided corpora are already fairly clean. For documents scraped from a
+        web page, this is where navigation text, ads, cookie banners and repeated
+        boilerplate come out.
     """
     text = raw.replace("\r\n", "\n").replace("\r", "\n")
 
@@ -44,8 +44,8 @@ def load_documents(corpus: str | None = None) -> list[Document]:
     """
     Read every .txt and .md file in the corpus folder.
 
-    Returns a list of Documents. Each one keeps its filename, because every
-    answer your system produces has to name the document it came from.
+        Returns a list of Documents. Each one keeps its filename, because every
+        answer has to name the document it came from.
     """
     folder = config.corpus_path(corpus)
 
@@ -71,7 +71,7 @@ def load_documents(corpus: str | None = None) -> list[Document]:
 
 
 def describe(documents: list[Document]) -> str:
-    """A one-line summary, printed after indexing so you can sanity-check it."""
+    """A one-line summary, printed after indexing."""
     total = sum(len(d.text) for d in documents)
     avg = total // max(len(documents), 1)
     return (
